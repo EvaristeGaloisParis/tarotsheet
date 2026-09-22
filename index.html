@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#141a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>TarotSheet — feuille de score tarot</title>
+<style>
+  :root{
+    --bg:#0e1322; --bg2:#141a2e; --card:#1b2440; --card2:#222d52;
+    --line:#2e3a63; --txt:#eef2ff; --dim:#9aa6c9; --dim2:#6b769b;
+    --accent:#6ea8fe; --ok:#4ade80; --ko:#f87171; --warn:#fbbf24;
+    --r:14px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0; padding:0}
+  body{
+    background:var(--bg); color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    padding:0 0 96px; line-height:1.4; font-size:15px;
+    padding-top:env(safe-area-inset-top);
+  }
+  h1,h2,h3{margin:0}
+  button{font-family:inherit; cursor:pointer; color:inherit; border:none; background:none}
+  input,select{font-family:inherit; font-size:16px}
+
+  header{
+    position:sticky; top:0; z-index:20; background:rgba(14,19,34,.92);
+    backdrop-filter:blur(10px); border-bottom:1px solid var(--line);
+    padding:calc(10px + env(safe-area-inset-top)) 16px 10px;
+    display:flex; align-items:center; gap:10px;
+  }
+  header .logo{font-size:20px}
+  header h1{font-size:17px; font-weight:700; letter-spacing:.2px; flex:1;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  header .game{font-size:12px; color:var(--dim); font-weight:500}
+  .icon-btn{width:38px; height:38px; border-radius:10px; background:var(--card);
+    display:flex; align-items:center; justify-content:center; font-size:18px; border:1px solid var(--line)}
+  .icon-btn:active{background:var(--card2)}
+
+  .wrap{max-width:820px; margin:0 auto; padding:14px}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--r);
+    padding:14px; margin-bottom:14px}
+  .card h2{font-size:13px; text-transform:uppercase; letter-spacing:.7px; color:var(--dim);
+    margin-bottom:12px; font-weight:600; display:flex; align-items:center; gap:8px}
+  .muted{color:var(--dim)}
+  .tiny{font-size:12px}
+
+  /* scoreboard chips */
+  .scoreboard{display:flex; flex-wrap:wrap; gap:8px}
+  .pchip{flex:1 1 auto; min-width:90px; background:var(--card2); border-radius:12px;
+    padding:10px 12px; border-left:4px solid var(--pc,#888)}
+  .pchip .nm{font-size:13px; color:var(--dim); font-weight:600; white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis}
+  .pchip .val{font-size:22px; font-weight:800; letter-spacing:.5px}
+  .pos{color:var(--ok)} .neg{color:var(--ko)} .zero{color:var(--dim)}
+
+  /* graph */
+  #graphWrap{position:relative}
+  canvas{width:100%; display:block; border-radius:8px}
+  .legend{display:flex; flex-wrap:wrap; gap:10px 14px; margin-top:10px}
+  .legend span{display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--dim)}
+  .legend i{width:12px; height:3px; border-radius:2px; display:inline-block}
+
+  /* stats table */
+  table{width:100%; border-collapse:collapse; font-size:14px}
+  th,td{text-align:right; padding:8px 6px; border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--dim); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.5px}
+  td .dot{display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:7px; vertical-align:middle}
+
+  /* deals list */
+  .deal{border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-bottom:10px;
+    background:var(--card2)}
+  .deal .top{display:flex; align-items:flex-start; gap:8px; margin-bottom:8px}
+  .deal .num{font-size:11px; color:var(--dim2); font-weight:700; min-width:34px; padding-top:3px}
+  .deal .res{font-size:12px; font-weight:700; padding:2px 8px; border-radius:20px}
+  .deal .res.win{background:rgba(74,222,128,.15); color:var(--ok)}
+  .deal .res.lose{background:rgba(248,113,113,.15); color:var(--ko)}
+  .deal .desc{flex:1; font-size:13px; color:var(--dim); line-height:1.5}
+  .deal .desc .fx{color:var(--txt); font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-size:12px; letter-spacing:.2px; white-space:nowrap}
+  .deal .acts{display:flex; gap:6px}
+  .deal .acts button{font-size:15px; width:30px; height:30px; border-radius:8px; background:var(--card); border:1px solid var(--line)}
+  .deal .grid{display:flex; flex-wrap:wrap; gap:6px}
+  .deal .g{font-size:12px; padding:3px 8px; border-radius:8px; background:var(--card); border:1px solid var(--line)}
+  .deal .g b{font-weight:800}
+  .deal .formula{margin-top:8px; font-size:12px; color:var(--dim2);
+    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; letter-spacing:.2px}
+
+  .empty{text-align:center; color:var(--dim2); padding:26px 10px; font-size:14px}
+
+  /* FAB */
+  .fab{position:fixed; left:50%; transform:translateX(-50%);
+    bottom:calc(18px + env(safe-area-inset-bottom)); z-index:30;
+    background:var(--accent); color:#08122b; font-weight:800; font-size:16px;
+    padding:15px 26px; border-radius:30px; box-shadow:0 8px 24px rgba(0,0,0,.45);
+    display:flex; align-items:center; gap:8px}
+  .fab:active{transform:translateX(-50%) scale(.97)}
+
+  /* modal / bottom sheet */
+  .overlay{position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:40;
+    display:none; align-items:flex-end; justify-content:center}
+  .overlay.show{display:flex}
+  .sheet{background:var(--bg2); width:100%; max-width:820px; max-height:92vh; overflow-y:auto;
+    border-radius:20px 20px 0 0; border-top:1px solid var(--line);
+    padding:16px 16px calc(20px + env(safe-area-inset-bottom));
+    animation:up .22s ease}
+  @keyframes up{from{transform:translateY(30px); opacity:.6} to{transform:translateY(0); opacity:1}}
+  .sheet-head{display:flex; align-items:center; margin-bottom:14px; position:sticky; top:0;
+    background:var(--bg2); padding-bottom:8px; z-index:2}
+  .sheet-head h2{font-size:18px; flex:1}
+  .sheet-head .x{width:36px; height:36px; border-radius:10px; background:var(--card); font-size:18px}
+
+  .field{margin-bottom:16px}
+  .field > label{display:block; font-size:12px; text-transform:uppercase; letter-spacing:.6px;
+    color:var(--dim); font-weight:600; margin-bottom:8px}
+  .field .hint{font-size:12px; color:var(--dim2); margin-top:6px}
+
+  .chips{display:flex; flex-wrap:wrap; gap:8px}
+  .chip{padding:10px 14px; border-radius:11px; background:var(--card); border:1px solid var(--line);
+    font-size:15px; font-weight:600; min-height:44px; display:flex; align-items:center; gap:6px}
+  .chip.sel{background:var(--accent); color:#08122b; border-color:var(--accent)}
+  .chip.mult{font-size:11px; opacity:.7; font-weight:700}
+  .chip.sel .mult{opacity:.9}
+  .chip.off{opacity:.4}
+  .chip .pc{width:10px; height:10px; border-radius:50%; display:inline-block}
+
+  .mini-toggle{font-size:12px; font-weight:700; color:var(--accent); background:none;
+    padding:4px 6px; text-transform:none; letter-spacing:0}
+  .mis-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:8px}
+  .mis-cell{display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background:var(--card); border:1px solid var(--line); border-radius:10px; padding:6px 6px 6px 10px}
+  .mis-name{display:flex; align-items:center; gap:7px; font-weight:600; font-size:14px;
+    min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .mis-toggles{display:flex; gap:5px; flex:none}
+  .mis-btn{padding:6px 9px; border-radius:8px; background:var(--bg2); border:1px solid var(--line);
+    font-size:12px; font-weight:700; min-height:34px}
+  .mis-btn.sel{background:var(--warn); color:#3a2a00; border-color:var(--warn)}
+
+  .num-row{display:flex; align-items:center; gap:10px}
+  .num-row input[type=number]{width:100%; padding:14px; border-radius:12px; background:var(--card);
+    border:1px solid var(--line); color:var(--txt); text-align:center; font-size:26px; font-weight:800}
+  .stepper{width:52px; height:56px; border-radius:12px; background:var(--card); border:1px solid var(--line);
+    font-size:24px; font-weight:800; flex:none}
+  .stepper:active{background:var(--card2)}
+
+  .crosscheck{display:flex; justify-content:space-between; gap:8px; margin-top:10px; font-size:13px}
+  .crosscheck div{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:8px 10px; flex:1; text-align:center}
+  .crosscheck b{font-size:16px; display:block}
+
+  .preview{background:var(--card2); border:1px solid var(--line); border-radius:12px; padding:12px; margin-top:6px}
+  .preview .headline{font-size:15px; font-weight:800; margin-bottom:8px}
+  .preview .headline.win{color:var(--ok)} .preview .headline.lose{color:var(--ko)}
+  .preview .dist{display:flex; flex-wrap:wrap; gap:6px}
+  .preview .dist span{font-size:13px; padding:4px 9px; border-radius:8px; background:var(--card); border:1px solid var(--line)}
+
+  .btn{width:100%; padding:15px; border-radius:13px; font-size:16px; font-weight:800; margin-top:8px}
+  .btn.primary{background:var(--accent); color:#08122b}
+  .btn.primary:disabled{opacity:.4}
+  .btn.ghost{background:var(--card); border:1px solid var(--line); color:var(--txt)}
+  .btn.danger{background:rgba(248,113,113,.15); color:var(--ko); border:1px solid rgba(248,113,113,.4)}
+
+  .row2{display:flex; gap:10px}
+  .row2 > *{flex:1}
+
+  /* setup / settings */
+  .name-row{display:flex; gap:8px; margin-bottom:8px}
+  .name-row input{flex:1; padding:12px; border-radius:11px; background:var(--card); border:1px solid var(--line); color:var(--txt)}
+  .name-row button{width:46px; border-radius:11px; background:var(--card); border:1px solid var(--line); font-size:18px}
+  .seg{display:flex; gap:8px}
+  .seg button{flex:1; padding:12px; border-radius:11px; background:var(--card); border:1px solid var(--line); font-weight:700; font-size:15px}
+  .seg button.sel{background:var(--accent); color:#08122b; border-color:var(--accent)}
+
+  .toast{position:fixed; left:50%; bottom:calc(90px + env(safe-area-inset-bottom)); transform:translateX(-50%);
+    background:var(--card2); border:1px solid var(--line); padding:10px 16px; border-radius:24px; font-size:14px;
+    z-index:60; opacity:0; transition:opacity .2s, transform .2s; pointer-events:none; white-space:nowrap}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(-6px)}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">🃏</span>
+  <div style="flex:1; min-width:0">
+    <h1>TarotSheet</h1>
+    <div class="game" id="gameName"></div>
+  </div>
+  <button class="icon-btn" id="btnStats" title="Stats & graph">📊</button>
+  <button class="icon-btn" id="btnSettings" title="Réglages">⚙️</button>
+</header>
+
+<div class="wrap" id="app"></div>
+
+<button class="fab" id="fab" style="display:none">＋ Nouvelle donne</button>
+
+<!-- Deal sheet -->
+<div class="overlay" id="dealOverlay">
+  <div class="sheet" id="dealSheet"></div>
+</div>
+<!-- Settings sheet -->
+<div class="overlay" id="setOverlay">
+  <div class="sheet" id="setSheet"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase (sync temps réel, optionnel — l'app marche sans) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<script>
+/* ============================================================
+   TarotSheet — feuille de score de Tarot (3/4/5 joueurs)
+   Règles FFT standard, avec misères (tête/atout). Sans chelem (comme demandé).
+   100% local, aucune dépendance, sauvegarde auto (localStorage).
+   ============================================================ */
+
+const LS_KEY = 'tarotsheet.v1';
+const LS_SHARE = 'tarotsheet.share';
+
+/* ============================================================
+   CONFIG FIREBASE — colle ici la config de TON projet.
+   Laisse vide pour rester 100% local (aucune sync).
+   ============================================================ */
+const FIREBASE_CONFIG = {
+  databaseURL: "https://tarotsheet-default-rtdb.europe-west1.firebasedatabase.app",
+};
+
+/* ============================================================
+   SYNC TEMPS RÉEL (Firebase Realtime Database) — optionnel.
+   Teneur = écrit et pousse ; spectateur = lit en direct.
+   ============================================================ */
+const Sync = {
+  db:null, role:null, code:null, ready:false,
+
+  configured(){ return typeof firebase!=='undefined' && !!FIREBASE_CONFIG.databaseURL; },
+
+  ensureApp(){
+    if(this.ready) return true;
+    if(!this.configured()) return false;
+    try{ if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+      this.db=firebase.database(); this.ready=true; return true; }
+    catch(e){ console.warn('Firebase init', e); return false; }
+  },
+
+  init(){
+    const urlRoom = new URLSearchParams(location.search).get('room');
+    let saved=null; try{ saved=JSON.parse(localStorage.getItem(LS_SHARE)||'null'); }catch(e){}
+
+    if(!this.configured()){
+      if(urlRoom){ this.role='viewer-unconfigured'; this.code=urlRoom; }
+      return;
+    }
+    if(!this.ensureApp()) return;
+
+    if(urlRoom && !(saved && saved.role==='editor' && saved.code===urlRoom)){
+      this.role='viewer'; this.code=urlRoom; this.subscribe();
+    }else if(saved && saved.role==='editor'){
+      this.role='editor'; this.code=saved.code; this.push();
+    }
+  },
+
+  subscribe(){
+    if(!this.ready || !this.code) return;
+    this.db.ref('rooms/'+this.code).on('value',
+      snap=>{ const v=snap.val(); if(v && v.data) S=v.data; render(); },
+      err=>console.warn('sync read', err));
+  },
+
+  push(){
+    if(this.role!=='editor' || !this.ready || !this.code) return;
+    this.db.ref('rooms/'+this.code).set({ data:S, ts:Date.now() })
+      .catch(e=>console.warn('sync push', e));
+  },
+
+  startSharing(){
+    if(!this.ensureApp()){ toast('Firebase non configuré'); return false; }
+    if(!this.code) this.code = genRoomCode();
+    this.role='editor';
+    localStorage.setItem(LS_SHARE, JSON.stringify({role:'editor', code:this.code}));
+    this.push();
+    return true;
+  },
+
+  stopSharing(){ localStorage.removeItem(LS_SHARE); this.role=null; this.code=null; },
+
+  viewerLink(){ return location.origin+location.pathname+'?room='+encodeURIComponent(this.code); },
+};
+function genRoomCode(){
+  const r = (crypto?.getRandomValues ? crypto.getRandomValues(new Uint32Array(1))[0] : Math.floor(Math.random()*1e9));
+  return 'T'+(1000 + (r % 9000));
+}
+function isViewer(){ return Sync.role==='viewer' || Sync.role==='viewer-unconfigured'; }
+
+/* --- règles de score --- */
+const TARGET   = {0:56, 1:51, 2:41, 3:36};              // points à faire selon nb de bouts
+const MULT     = {petite:1, garde:2, gardeSans:4, gardeContre:6};
+const CONTRACTS= [
+  {k:'petite',     label:'Petite',       mult:1},
+  {k:'garde',      label:'Garde',        mult:2},
+  {k:'gardeSans',  label:'Garde Sans',   mult:4},
+  {k:'gardeContre',label:'Garde Contre', mult:6},
+];
+const POIGNEE_BONUS  = {none:0, simple:20, double:30, triple:40};
+const POIGNEE_COUNTS = {                                // nb d'atouts à montrer, par nb de joueurs
+  3:{simple:13, double:15, triple:18},
+  4:{simple:10, double:13, triple:15},
+  5:{simple:8,  double:10, triple:13},
+};
+const DECK_POINTS = 91;                                 // total des points du jeu
+const MISERE_PRIME = 10;                                // prime par misère (tête ou atout), payée par chaque autre joueur
+
+const COLORS = ['#6ea8fe','#4ade80','#fbbf24','#f87171','#c084fc','#22d3ee'];
+
+/* --- state --- */
+let S = load();
+let form = null;        // état du formulaire de donne en cours
+let editingId = null;
+
+function load(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return { gameName:'', players:[], deals:[] };
+}
+function save(){ localStorage.setItem(LS_KEY, JSON.stringify(S)); Sync.push(); }
+function colorOf(name){ return COLORS[S.players.indexOf(name) % COLORS.length]; }
+function uid(){ return 'd'+(S.deals.length? Math.max(...S.deals.map(d=>+d.id.slice(1)||0))+1 : 1); }
+
+/* ============================================================
+   CALCUL D'UNE DONNE
+   ============================================================ */
+function computeDeal(d){
+  const n       = d.participants.length;
+  const target  = TARGET[d.bouts];
+  const attack  = d.attack;
+  const diff    = attack - target;
+  const won     = diff >= 0;
+  const ecart   = Math.abs(diff);
+  const mult    = MULT[d.contract];
+  const sign    = won ? 1 : -1;
+  const pab     = d.petitAuBout==='attaque' ? 10 : d.petitAuBout==='defense' ? -10 : 0;
+  const poignee = (won?1:-1) * POIGNEE_BONUS[d.poignee||'none'];
+  // montant par défenseur, du point de vue de l'attaque
+  const amount  = mult * ((25 + ecart)*sign + pab) + poignee;
+
+  const deltas = {};
+  d.participants.forEach(p => deltas[p] = 0);
+
+  if(n===5 && d.partner && d.partner!=='seul'){
+    // preneur + appelé contre 3
+    deltas[d.taker]   += 2*amount;
+    deltas[d.partner] += 1*amount;
+    d.participants.forEach(p=>{ if(p!==d.taker && p!==d.partner) deltas[p] -= amount; });
+  }else{
+    // preneur seul contre (n-1)  (couvre 3j, 4j, et 5j "seul")
+    const defenders = n-1;
+    deltas[d.taker] += defenders*amount;
+    d.participants.forEach(p=>{ if(p!==d.taker) deltas[p] -= amount; });
+  }
+
+  // primes de misère (indépendantes du résultat, non multipliées, payées par chacun des autres)
+  let misereTotal = 0;
+  const mis = d.miseres || {};
+  d.participants.forEach(holder=>{
+    const m = mis[holder]; if(!m) return;
+    const count = (m.tete?1:0) + (m.atout?1:0);
+    if(!count) return;
+    const prime = count * MISERE_PRIME;
+    deltas[holder] += prime*(n-1);
+    d.participants.forEach(o=>{ if(o!==holder) deltas[o] -= prime; });
+    misereTotal += prime;
+  });
+
+  return { deltas, won, ecart, amount, target, defense: DECK_POINTS-attack, diff, n, misereTotal };
+}
+
+/* formule lisible d'une donne : ex "2×(25+3) + 20 = 76 /déf." */
+function formulaText(d){
+  const r    = computeDeal(d);
+  const mult = MULT[d.contract];
+  const sign = r.won ? 1 : -1;
+  const pab  = d.petitAuBout==='attaque' ? 10 : d.petitAuBout==='defense' ? -10 : 0;
+  const poignee = (r.won?1:-1) * POIGNEE_BONUS[d.poignee||'none'];
+  let inner = sign>0 ? `25+${fmt(r.ecart)}` : `−(25+${fmt(r.ecart)})`;
+  if(pab>0) inner += '+10'; else if(pab<0) inner += '−10';
+  let s = `${mult}×(${inner})`;
+  if(poignee>0) s += ` + ${poignee}`; else if(poignee<0) s += ` − ${-poignee}`;
+  return `${s} = ${fmt(r.amount)} /déf.`;
+}
+
+/* totaux cumulés & séries pour le graph */
+function totals(){
+  const t = {}; S.players.forEach(p=>t[p]=0);
+  S.deals.forEach(d=>{
+    const {deltas} = computeDeal(d);
+    for(const p in deltas) if(p in t) t[p]+=deltas[p];
+  });
+  return t;
+}
+function series(){
+  const cum = {}; S.players.forEach(p=>cum[p]=0);
+  const pts = {}; S.players.forEach(p=>pts[p]=[0]);      // départ à 0
+  S.deals.forEach(d=>{
+    const {deltas} = computeDeal(d);
+    S.players.forEach(p=>{ cum[p]+=(deltas[p]||0); pts[p].push(cum[p]); });
+  });
+  return pts;
+}
+function stats(){
+  const st = {}; S.players.forEach(p=>st[p]={prises:0, reussites:0, total:0, best:null, worst:null, played:0});
+  S.deals.forEach(d=>{
+    const r = computeDeal(d);
+    if(st[d.taker]){ st[d.taker].prises++; if(r.won) st[d.taker].reussites++; }
+    d.participants.forEach(p=>{
+      if(!st[p]) return;
+      const v = r.deltas[p];
+      st[p].total += v; st[p].played++;
+      if(st[p].best===null || v>st[p].best) st[p].best = v;
+      if(st[p].worst===null || v<st[p].worst) st[p].worst = v;
+    });
+  });
+  return st;
+}
+
+/* ============================================================
+   RENDU PRINCIPAL
+   ============================================================ */
+function updateHeader(){
+  const g = S.gameName ? S.gameName : ((S.players&&S.players.length)? S.players.length+' joueurs' : '');
+  let suffix='';
+  if(Sync.role==='editor') suffix=' · 🟢 partagé '+Sync.code;
+  else if(isViewer()) suffix=' · 👁 spectateur';
+  document.getElementById('gameName').textContent = g+suffix;
+}
+function viewerBanner(){
+  return `<div class="card" style="border-color:var(--accent); background:rgba(110,168,254,.08)">
+    <div style="display:flex; align-items:center; gap:10px">
+      <span style="font-size:22px">👁</span>
+      <div><b>Vue spectateur</b>
+        <div class="muted tiny">Mise à jour automatique — code ${esc(Sync.code||'')}</div></div>
+    </div></div>`;
+}
+
+function render(){
+  const app = document.getElementById('app');
+  const viewer = isViewer();
+  const fab = document.getElementById('fab');
+  updateHeader();
+
+  if(viewer && (!S.players || S.players.length<3)){
+    fab.style.display='none';
+    app.innerHTML = viewerBanner() + `<div class="card"><div class="empty">${
+      Sync.role==='viewer-unconfigured'
+        ? "Cette partie n'est pas visible ici (sync non configurée sur cette version de l'app)."
+        : "En attente des scores du teneur…"}</div></div>`;
+    return;
+  }
+  if(!viewer && S.players.length < 3){ renderSetup(app); fab.style.display='none'; return; }
+  fab.style.display = viewer ? 'none' : 'flex';
+
+  const t = totals();
+  const ranked = [...S.players].sort((a,b)=>t[b]-t[a]);
+
+  let html = viewer ? viewerBanner() : '';
+
+  /* graph */
+  html += `<div class="card">
+    <h2>📈 Évolution</h2>
+    <div id="graphWrap"><canvas id="graph" height="180"></canvas></div>
+    <div class="legend">${S.players.map(p=>
+      `<span><i style="background:${colorOf(p)}"></i>${esc(p)}</span>`).join('')}</div>
+  </div>`;
+
+  /* scoreboard */
+  html += `<div class="card"><h2>🏆 Scores</h2><div class="scoreboard">`;
+  ranked.forEach(p=>{
+    const v=t[p]; const cls=v>0?'pos':v<0?'neg':'zero';
+    html+=`<div class="pchip" style="--pc:${colorOf(p)}">
+      <div class="nm">${esc(p)}</div>
+      <div class="val ${cls}">${v>0?'+':''}${fmt(v)}</div></div>`;
+  });
+  html += `</div></div>`;
+
+  /* stats détaillées */
+  const st = stats();
+  html += `<div class="card"><h2>📊 Statistiques</h2>
+    <div style="overflow-x:auto"><table>
+      <thead><tr>
+        <th>Joueur</th><th>Prises</th><th>Réussites</th><th>Taux</th>
+        <th>Total</th><th>Meilleure</th><th>Pire</th>
+      </tr></thead><tbody>
+      ${ranked.map(p=>{
+        const s=st[p];
+        const taux = s.prises? Math.round(100*s.reussites/s.prises)+'%' : '—';
+        const tot = s.total, tcls = tot>0?'pos':tot<0?'neg':'zero';
+        const bcls = (s.best??0)>0?'pos':(s.best??0)<0?'neg':'zero';
+        const wcls = (s.worst??0)>0?'pos':(s.worst??0)<0?'neg':'zero';
+        return `<tr>
+          <td><span class="dot" style="background:${colorOf(p)}"></span>${esc(p)}</td>
+          <td>${s.prises}</td>
+          <td>${s.reussites}</td>
+          <td>${taux}</td>
+          <td class="${tcls}"><b>${tot>0?'+':''}${fmt(tot)}</b></td>
+          <td class="${bcls}">${s.best==null?'—':(s.best>0?'+':'')+fmt(s.best)}</td>
+          <td class="${wcls}">${s.worst==null?'—':(s.worst>0?'+':'')+fmt(s.worst)}</td>
+        </tr>`;
+      }).join('')}
+      </tbody></table></div>
+    <div class="muted tiny" style="margin-top:8px">« Meilleure/Pire » = plus gros gain / plus grosse perte sur une donne.</div>
+  </div>`;
+
+  /* deals */
+  html += `<div class="card"><h2>🗒️ Donnes <span class="muted tiny" style="text-transform:none;letter-spacing:0">(${S.deals.length})</span></h2>`;
+  if(!S.deals.length){
+    html += `<div class="empty">Aucune donne.<br>Appuie sur « ＋ Nouvelle donne » pour commencer.</div>`;
+  }else{
+    [...S.deals].reverse().forEach((d,i)=>{
+      const idx = S.deals.length - i;
+      const r = computeDeal(d);
+      const cLabel = CONTRACTS.find(c=>c.k===d.contract).label;
+      let desc = `${esc(d.taker)} · ${cLabel} · ${d.bouts} bout${d.bouts>1?'s':''}`;
+      if(d.participants.length===5 && d.partner && d.partner!=='seul') desc+=` · avec ${esc(d.partner)}`;
+      if(d.participants.length===5 && d.partner==='seul') desc+=` · seul`;
+      const extras=[];
+      if(d.petitAuBout && d.petitAuBout!=='aucun') extras.push('Petit au bout '+ (d.petitAuBout==='attaque'?'⚔️':'🛡️'));
+      if(d.poignee && d.poignee!=='none') extras.push('Poignée '+d.poignee);
+      if(d.miseres) for(const p in d.miseres){ const m=d.miseres[p];
+        if(m.tete) extras.push('Misère tête ('+esc(p)+')');
+        if(m.atout) extras.push('Misère atout ('+esc(p)+')'); }
+      html += `<div class="deal">
+        <div class="top">
+          <span class="num">#${idx}</span>
+          <span class="res ${r.won?'win':'lose'}">${r.won?'✔ +'+fmt(r.ecart):'✘ chute '+fmt(r.ecart)}</span>
+          <span class="desc">${desc}${extras.length?' · '+extras.join(' · '):''} · <span class="fx">${formulaText(d)}</span></span>
+          ${viewer?'':`<span class="acts">
+            <button onclick="openDeal('${d.id}')">✏️</button>
+            <button onclick="delDeal('${d.id}')">🗑️</button>
+          </span>`}
+        </div>
+        <div class="grid">${d.participants.map(p=>{
+          const v=r.deltas[p]; const cls=v>0?'pos':v<0?'neg':'zero';
+          return `<span class="g">${esc(p)} <b class="${cls}">${v>0?'+':''}${fmt(v)}</b></span>`;
+        }).join('')}</div>
+      </div>`;
+    });
+  }
+  html += `</div>`;
+
+  app.innerHTML = html;
+  drawGraph();
+}
+
+/* ============================================================
+   GRAPHIQUE (canvas, sans lib)
+   ============================================================ */
+function drawGraph(){
+  const cv = document.getElementById('graph'); if(!cv) return;
+  const dpr = window.devicePixelRatio||1;
+  const W = cv.clientWidth, H = 180;
+  cv.width = W*dpr; cv.height = H*dpr;
+  const ctx = cv.getContext('2d'); ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,H);
+
+  const pts = series();
+  const nSteps = S.deals.length;              // nb de donnes
+  const padL=8, padR=8, padT=10, padB=16;
+  const gw = W-padL-padR, gh = H-padT-padB;
+
+  // bornes Y
+  let min=0, max=0;
+  S.players.forEach(p=>pts[p].forEach(v=>{ if(v<min)min=v; if(v>max)max=v; }));
+  if(min===max){ min-=10; max+=10; }
+  const pad=(max-min)*0.12||10; min-=pad; max+=pad;
+  const x = i => padL + (nSteps? gw*i/nSteps : gw/2);
+  const y = v => padT + gh*(1-(v-min)/(max-min));
+
+  // ligne zéro
+  ctx.strokeStyle='#2e3a63'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(padL,y(0)); ctx.lineTo(W-padR,y(0)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#6b769b'; ctx.font='10px sans-serif'; ctx.textBaseline='middle';
+  ctx.fillText('0', padL+2, y(0)-7);
+
+  if(nSteps===0){
+    ctx.fillStyle='#6b769b'; ctx.font='13px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('Le graphe se remplira au fil des donnes', W/2, H/2); return;
+  }
+
+  S.players.forEach(p=>{
+    const col=colorOf(p); const arr=pts[p];
+    ctx.strokeStyle=col; ctx.lineWidth=2.4; ctx.lineJoin='round';
+    ctx.beginPath();
+    arr.forEach((v,i)=>{ const px=x(i),py=y(v); i?ctx.lineTo(px,py):ctx.moveTo(px,py); });
+    ctx.stroke();
+    // point + valeur finale
+    const last=arr.length-1, px=x(last), py=y(arr[last]);
+    ctx.fillStyle=col; ctx.beginPath(); ctx.arc(px,py,3.2,0,7); ctx.fill();
+    ctx.fillStyle=col; ctx.font='bold 11px sans-serif'; ctx.textAlign='right'; ctx.textBaseline='bottom';
+    ctx.fillText((arr[last]>0?'+':'')+arr[last], px-4, py-3);
+  });
+}
+
+/* ============================================================
+   FORMULAIRE DE DONNE (bottom sheet)
+   ============================================================ */
+function newForm(){
+  return {
+    participants:[...S.players],
+    taker:null, partner:null,
+    contract:null, bouts:null,
+    attack:'', petitAuBout:'aucun', poignee:'none', miseres:{},
+  };
+}
+function openDeal(id){
+  editingId = id||null;
+  if(id){
+    const d = S.deals.find(x=>x.id===id);
+    form = { participants:[...d.participants], taker:d.taker, partner:d.partner,
+      contract:d.contract, bouts:d.bouts, attack:d.attack,
+      petitAuBout:d.petitAuBout||'aucun', poignee:d.poignee||'none',
+      miseres: JSON.parse(JSON.stringify(d.miseres||{})) };
+  }else{
+    form = newForm();
+  }
+  document.getElementById('dealOverlay').classList.add('show');
+  renderDeal();
+}
+function closeDeal(){ document.getElementById('dealOverlay').classList.remove('show'); form=null; editingId=null; }
+
+function renderDeal(){
+  const n = S.players.length;          // roster fixe : tous les joueurs jouent chaque donne
+  const active = S.players;
+
+  // liste appelé possible (5 joueurs)
+  const others = active.filter(p=>p!==form.taker);
+
+  let h = `<div class="sheet-head">
+    <h2>${editingId?'Modifier la donne':'Nouvelle donne'} <span class="muted tiny" style="text-transform:none;letter-spacing:0">· à ${n}</span></h2>
+    <button class="x" onclick="closeDeal()">✕</button>
+  </div>`;
+
+  /* preneur */
+  h += `<div class="field"><label>Qui prend&nbsp;?</label>
+    <div class="chips">${active.map(p=>
+      `<button class="chip ${form.taker===p?'sel':''}" onclick="setTaker('${jsq(p)}')">
+        <span class="pc" style="background:${colorOf(p)}"></span>${esc(p)}</button>`).join('')}</div></div>`;
+
+  /* appelé (5 joueurs) */
+  if(n===5){
+    h += `<div class="field"><label>Appelé (roi) — partenaire du preneur</label>
+      <div class="chips">
+        ${others.map(p=>`<button class="chip ${form.partner===p?'sel':''}" onclick="setPartner('${jsq(p)}')">
+          <span class="pc" style="background:${colorOf(p)}"></span>${esc(p)}</button>`).join('')}
+        <button class="chip ${form.partner==='seul'?'sel':''}" onclick="setPartner('seul')">🐺 Seul</button>
+      </div>
+      <div class="hint">« Seul » = le preneur s'est appelé lui-même (joue contre 4).</div></div>`;
+  }
+
+  /* contrat */
+  h += `<div class="field"><label>Contrat</label>
+    <div class="chips">${CONTRACTS.map(c=>
+      `<button class="chip ${form.contract===c.k?'sel':''}" onclick="setField('contract','${c.k}')">
+        ${c.label} <span class="mult">×${c.mult}</span></button>`).join('')}</div></div>`;
+
+  /* bouts */
+  h += `<div class="field"><label>Nombre de bouts (oudlers)</label>
+    <div class="chips">${[0,1,2,3].map(b=>
+      `<button class="chip ${form.bouts===b?'sel':''}" onclick="setField('bouts',${b})">
+        ${b} <span class="mult">→ ${TARGET[b]}</span></button>`).join('')}</div>
+    <div class="hint">« → » = points à faire par l'attaque.</div></div>`;
+
+  /* points attaque */
+  const atk = form.attack===''? null : +form.attack;
+  h += `<div class="field"><label>Points de l'attaque</label>
+    <div class="num-row">
+      <button class="stepper" onclick="bumpAttack(-1)">–</button>
+      <input type="number" id="atkInput" inputmode="decimal" step="0.5" min="0" max="91"
+        value="${form.attack}" placeholder="0–91" oninput="setAttack(this.value)">
+      <button class="stepper" onclick="bumpAttack(1)">+</button>
+    </div>
+    <div class="crosscheck">
+      <div>Attaque<b>${atk!=null?fmt(atk):'—'}</b></div>
+      <div>Défense (contrôle)<b>${atk!=null?fmt(DECK_POINTS-atk):'—'}</b></div>
+      <div>Total<b>${atk!=null?fmt(atk)+' + '+fmt(DECK_POINTS-atk):DECK_POINTS}</b></div>
+    </div></div>`;
+
+  /* petit au bout */
+  h += `<div class="field"><label>Petit au bout</label>
+    <div class="chips">
+      <button class="chip ${form.petitAuBout==='aucun'?'sel':''}" onclick="setField('petitAuBout','aucun')">Aucun</button>
+      <button class="chip ${form.petitAuBout==='attaque'?'sel':''}" onclick="setField('petitAuBout','attaque')">⚔️ Attaque</button>
+      <button class="chip ${form.petitAuBout==='defense'?'sel':''}" onclick="setField('petitAuBout','defense')">🛡️ Défense</button>
+    </div></div>`;
+
+  /* poignée */
+  const pc = POIGNEE_COUNTS[ (n>=3&&n<=5)? n : 4 ];
+  h += `<div class="field"><label>Poignée</label>
+    <div class="chips">
+      <button class="chip ${form.poignee==='none'?'sel':''}" onclick="setField('poignee','none')">Aucune</button>
+      <button class="chip ${form.poignee==='simple'?'sel':''}" onclick="setField('poignee','simple')">Simple <span class="mult">${pc.simple} at. · +20</span></button>
+      <button class="chip ${form.poignee==='double'?'sel':''}" onclick="setField('poignee','double')">Double <span class="mult">${pc.double} at. · +30</span></button>
+      <button class="chip ${form.poignee==='triple'?'sel':''}" onclick="setField('poignee','triple')">Triple <span class="mult">${pc.triple} at. · +40</span></button>
+    </div>
+    <div class="hint">Rappel du nombre d'atouts à ${(n>=3&&n<=5)?n:'?'} joueurs. La prime va toujours à l'équipe gagnante.</div></div>`;
+
+  /* misères (repliable — la plupart des donnes n'en ont pas) */
+  const misSum = summarizeMiseres(form.miseres);
+  const showMis = form._showMis || !!misSum;
+  h += `<div class="field">
+    <label style="display:flex; justify-content:space-between; align-items:center">
+      <span>Misères ${misSum?`<span style="color:var(--warn)">· ${misSum}</span>`:''}</span>
+      <button class="mini-toggle" onclick="toggleMisPanel()">${showMis?'Fermer ▲':'+ Ajouter ▾'}</button>
+    </label>
+    ${showMis?`<div class="mis-grid">${active.map(p=>{
+      const m = form.miseres[p]||{};
+      return `<div class="mis-cell">
+        <span class="mis-name"><span class="pc" style="background:${colorOf(p)}"></span>${esc(p)}</span>
+        <span class="mis-toggles">
+          <button class="mis-btn ${m.tete?'sel':''}" onclick="toggleMisere('${jsq(p)}','tete')">Tête</button>
+          <button class="mis-btn ${m.atout?'sel':''}" onclick="toggleMisere('${jsq(p)}','atout')">Atout</button>
+        </span>
+      </div>`;
+    }).join('')}</div>
+    <div class="hint">${MISERE_PRIME} pts par misère (tête = pas de figure, atout = pas d'atout), payés par chacun des autres joueurs.</div>`:''}
+  </div>`;
+
+  /* preview */
+  h += `<div class="field">${renderPreview()}</div>`;
+
+  /* actions */
+  const ready = form.taker && form.contract && form.bouts!=null && atk!=null &&
+                !(n===5 && !form.partner);
+  h += `<button class="btn primary" onclick="saveDeal()" ${ready?'':'disabled'}>
+    ${editingId?'Enregistrer les modifications':'Valider la donne'}</button>`;
+  if(editingId) h += `<button class="btn danger" onclick="delDeal('${editingId}');closeDeal()">Supprimer cette donne</button>`;
+
+  document.getElementById('dealSheet').innerHTML = h;
+}
+
+function renderPreview(){
+  const n=form.participants.length;
+  if(!(n>=3&&n<=5) || !form.taker || !form.contract || form.bouts==null || form.attack==='' || (n===5&&!form.partner))
+    return `<div class="preview"><div class="muted tiny">Complète la donne pour voir le résultat…</div></div>`;
+  const d = {...form, attack:+form.attack};
+  const r = computeDeal(d);
+  const headline = r.won
+    ? `Contrat réussi de +${fmt(r.ecart)} — attaque ${fmt(d.attack)} / ${r.target}`
+    : `Chute de ${fmt(r.ecart)} — attaque ${fmt(d.attack)} / ${r.target}`;
+  const dist = d.participants.map(p=>{
+    const v=r.deltas[p]; const cls=v>0?'pos':v<0?'neg':'zero';
+    return `<span>${esc(p)} <b class="${cls}">${v>0?'+':''}${fmt(v)}</b></span>`;
+  }).join('');
+  return `<div class="preview">
+    <div class="headline ${r.won?'win':'lose'}">${r.won?'✔ ':'✘ '}${headline}</div>
+    <div class="dist">${dist}</div>
+    <div class="formula" style="margin-top:8px;font-size:12px;color:var(--dim2);font-family:ui-monospace,Menlo,Consolas,monospace">${formulaText(d)}</div></div>`;
+}
+
+/* handlers formulaire */
+function setTaker(p){ form.taker=p; if(form.partner===p) form.partner=null; renderDeal(); }
+function setPartner(p){ form.partner=p; renderDeal(); }
+function setField(k,v){ form[k]=v; renderDeal(); }
+function toggleMisPanel(){ form._showMis = !form._showMis; renderDeal(); }
+function toggleMisere(p,type){
+  if(!form.miseres[p]) form.miseres[p]={};
+  form.miseres[p][type] = !form.miseres[p][type];
+  renderDeal();
+}
+function summarizeMiseres(m){
+  const parts=[];
+  for(const p in (m||{})){ const o=m[p]; const t=[]; if(o.tete)t.push('tête'); if(o.atout)t.push('atout');
+    if(t.length) parts.push(`${p} (${t.join('+')})`); }
+  return parts.join(', ');
+}
+function cleanMiseres(m){
+  const out={};
+  for(const p in m){ const o={}; if(m[p].tete)o.tete=true; if(m[p].atout)o.atout=true;
+    if(o.tete||o.atout) out[p]=o; }
+  return out;
+}
+function setAttack(v){ form.attack = v; updatePreviewOnly(); }
+function bumpAttack(step){
+  let v = form.attack===''?0:+form.attack; v=Math.max(0,Math.min(91, v+step));
+  form.attack = String(v); renderDeal();
+  const inp=document.getElementById('atkInput'); if(inp) inp.value=form.attack;
+}
+// mise à jour légère (ne recrée pas l'input pour ne pas perdre le focus/curseur)
+function updatePreviewOnly(){
+  const n=form.participants.length;
+  const atk = form.attack===''?null:+form.attack;
+  const cc = document.querySelector('.crosscheck');
+  if(cc) cc.innerHTML =
+    `<div>Attaque<b>${atk!=null?fmt(atk):'—'}</b></div>
+     <div>Défense (contrôle)<b>${atk!=null?fmt(DECK_POINTS-atk):'—'}</b></div>
+     <div>Total<b>${atk!=null?fmt(atk)+' + '+fmt(DECK_POINTS-atk):DECK_POINTS}</b></div>`;
+  const pv = document.querySelector('.preview');
+  if(pv) pv.outerHTML = renderPreview();
+  // réactiver le bouton valider
+  const atkOk = atk!=null && !isNaN(atk);
+  const ready = (n>=3&&n<=5) && form.taker && form.contract && form.bouts!=null && atkOk && !(n===5&&!form.partner);
+  const btn=document.querySelector('#dealSheet .btn.primary'); if(btn) btn.disabled=!ready;
+}
+
+function saveDeal(){
+  const n=form.participants.length;
+  const atk=+form.attack;
+  if(!(n>=3&&n<=5)||!form.taker||!form.contract||form.bouts==null||isNaN(atk)){ toast('Donne incomplète'); return; }
+  if(atk<0||atk>91){ toast('Points attaque entre 0 et 91'); return; }
+  const rec = {
+    id: editingId || uid(),
+    ts: (S.deals.find(d=>d.id===editingId)?.ts) || Date.now(),
+    participants:[...form.participants],
+    taker:form.taker,
+    partner: n===5 ? form.partner : null,
+    contract:form.contract, bouts:form.bouts, attack:atk,
+    petitAuBout:form.petitAuBout, poignee:form.poignee,
+    miseres:cleanMiseres(form.miseres),
+  };
+  if(editingId){ const i=S.deals.findIndex(d=>d.id===editingId); S.deals[i]=rec; toast('Donne modifiée'); }
+  else{ S.deals.push(rec); toast('Donne ajoutée ✔'); }
+  save(); closeDeal(); render();
+}
+function delDeal(id){
+  if(!confirm('Supprimer cette donne ?')) return;
+  S.deals = S.deals.filter(d=>d.id!==id); save(); render();
+  if(editingId===id) closeDeal();
+  toast('Donne supprimée');
+}
+
+/* ============================================================
+   SETUP (première partie / pas assez de joueurs)
+   ============================================================ */
+function renderSetup(app){
+  app.innerHTML = `<div class="card">
+    <h2>👋 Bienvenue</h2>
+    <p class="muted" style="margin-top:0">Ajoute les prénoms des joueurs (3 à 5) pour démarrer une partie.</p>
+    <div id="setupNames"></div>
+    <button class="btn ghost" onclick="addNameRow()">＋ Ajouter un joueur</button>
+    <div class="field" style="margin-top:16px">
+      <label>Nom de la partie (optionnel)</label>
+      <div class="name-row"><input id="setupGame" placeholder="ex: Weekend chez Paul" value="${esc(S.gameName)}"></div>
+    </div>
+    <button class="btn primary" onclick="startGame()">Démarrer</button>
+  </div>
+  <div class="card"><h2>ℹ️ Comment ça marche</h2>
+    <p class="muted tiny" style="margin:0">Tout est enregistré automatiquement sur cet appareil. Une partie se joue à 3, 4 ou 5 :
+    les joueurs déclarés jouent toutes les donnes jusqu'à la fin. Pour changer la composition, démarre une nouvelle partie.
+    Règles FFT standard, misères gérées (sans chelem).</p></div>`;
+  setupNames = S.players.length? [...S.players] : ['','',''];
+  drawNameRows();
+}
+let setupNames=['','',''];
+function drawNameRows(){
+  const box=document.getElementById('setupNames'); if(!box) return;
+  box.innerHTML = setupNames.map((nm,i)=>`<div class="name-row">
+    <input placeholder="Joueur ${i+1}" value="${esc(nm)}" oninput="setupNames[${i}]=this.value">
+    ${setupNames.length>3?`<button onclick="rmNameRow(${i})">✕</button>`:''}
+  </div>`).join('');
+}
+function addNameRow(){ if(setupNames.length>=5){toast('5 joueurs max');return;} readSetup(); setupNames.push(''); drawNameRows(); }
+function rmNameRow(i){ readSetup(); setupNames.splice(i,1); drawNameRows(); }
+function readSetup(){ document.querySelectorAll('#setupNames input').forEach((el,i)=>setupNames[i]=el.value); }
+function startGame(){
+  readSetup();
+  const names = setupNames.map(cap).filter(Boolean);
+  if(new Set(names.map(n=>n.toLowerCase())).size !== names.length){ toast('Prénoms en double'); return; }
+  if(names.length<3){ toast('Il faut au moins 3 joueurs'); return; }
+  if(names.length>5){ toast('5 joueurs maximum'); return; }
+  S.players=names; S.gameName=document.getElementById('setupGame').value.trim();
+  save(); render();
+}
+
+/* ============================================================
+   RÉGLAGES
+   ============================================================ */
+function openSettings(){ document.getElementById('setOverlay').classList.add('show'); renderSettings(); }
+function closeSettings(){ document.getElementById('setOverlay').classList.remove('show'); }
+function shareSettingsHTML(){
+  if(!Sync.configured()){
+    return `<div class="field"><label>Partage en direct</label>
+      <div class="hint">Pour que les autres joueurs voient la grille sur leur téléphone, la configuration Firebase doit être ajoutée à l'app (procédure fournie). Non configuré pour l'instant → mode local uniquement.</div></div>`;
+  }
+  if(Sync.role==='editor'){
+    return `<div class="field"><label>Partage en direct 🟢 <span style="color:var(--ok)">actif · ${esc(Sync.code)}</span></label>
+      <div class="hint">Donne ce lien (ou le QR) aux autres : ils suivent ta grille en lecture seule, mise à jour en direct.</div>
+      <div class="name-row"><input id="shareLink" readonly value="${esc(Sync.viewerLink())}"></div>
+      <div class="row2">
+        <button class="btn ghost" onclick="copyShare()">📋 Copier le lien</button>
+        <button class="btn ghost" onclick="showQR()">🔳 Afficher le QR</button>
+      </div>
+      <div id="qrBox" style="text-align:center; margin-top:10px"></div>
+      <button class="btn danger" onclick="stopShare()">⏹ Arrêter le partage</button></div>`;
+  }
+  return `<div class="field"><label>Partage en direct</label>
+    <div class="hint">Active le partage : tu obtiens un lien à donner aux autres joueurs, qui verront ta grille se remplir en direct sur leur téléphone.</div>
+    <button class="btn primary" onclick="startShare()">📡 Partager cette partie</button></div>`;
+}
+function startShare(){ if(Sync.startSharing()){ toast('Partage activé 🟢'); renderSettings(); updateHeader(); } }
+function stopShare(){ if(confirm('Arrêter le partage ?')){ Sync.stopSharing(); renderSettings(); updateHeader(); toast('Partage arrêté'); } }
+function copyShare(){ const i=document.getElementById('shareLink'); i.select();
+  try{ navigator.clipboard.writeText(i.value); }catch(e){ document.execCommand('copy'); } toast('Lien copié'); }
+function showQR(){ const box=document.getElementById('qrBox');
+  const url='https://api.qrserver.com/v1/create-qr-code/?size=220x220&data='+encodeURIComponent(Sync.viewerLink());
+  box.innerHTML=`<img src="${url}" width="200" height="200" alt="QR" style="background:#fff; border-radius:12px; padding:8px">`; }
+
+function renderSettings(){
+  if(isViewer()){
+    document.getElementById('setSheet').innerHTML =
+      `<div class="sheet-head"><h2>Vue spectateur</h2><button class="x" onclick="closeSettings()">✕</button></div>
+       <div class="field"><div class="hint">Tu suis la partie « ${esc(S.gameName||'')} » en lecture seule (code ${esc(Sync.code||'')}). La grille se met à jour automatiquement.</div></div>
+       <button class="btn ghost" onclick="location.href=location.pathname">Quitter la vue spectateur</button>`;
+    return;
+  }
+  const h = `<div class="sheet-head"><h2>Réglages</h2>
+    <button class="x" onclick="closeSettings()">✕</button></div>
+    ${shareSettingsHTML()}
+    <div class="field"><label>Nom de la partie</label>
+      <div class="name-row"><input id="setGameName" value="${esc(S.gameName)}" placeholder="ex: Weekend chez Paul"
+        oninput="S.gameName=this.value; save(); document.getElementById('gameName').textContent=this.value||S.players.length+' joueurs'"></div></div>
+    <div class="field"><label>Joueurs de la partie</label>
+      ${S.players.map(p=>`<div class="name-row">
+        <span class="pc" style="background:${colorOf(p)}; width:14px; height:14px; border-radius:50%; flex:none; align-self:center"></span>
+        <input value="${esc(p)}" onchange="renamePlayer('${jsq(p)}', this.value)" aria-label="Prénom">
+      </div>`).join('')}
+      <div class="hint">Corrige un prénom : la modification se répercute automatiquement sur toutes les donnes. Pour changer la composition (ajouter/retirer un joueur), démarre une nouvelle partie.</div></div>
+    <div class="row2">
+      <button class="btn ghost" onclick="exportJSON()">⬇️ Exporter</button>
+      <button class="btn ghost" onclick="document.getElementById('importFile').click()">⬆️ Importer</button>
+    </div>
+    <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importJSON(event)">
+    <button class="btn danger" onclick="newGame()">🔄 Nouvelle partie</button>
+    <button class="btn danger" onclick="resetAll()">🗑️ Tout effacer</button>
+    <div class="hint" style="margin-top:14px">TarotSheet — 100% local sur cet appareil. Astuce : « Ajouter à l'écran d'accueil » pour l'ouvrir comme une appli. Partage réseau vers les autres téléphones : prévu pour une prochaine étape.</div>`;
+  document.getElementById('setSheet').innerHTML=h;
+}
+function renamePlayer(oldName, raw){
+  const newName = cap(raw);
+  if(!newName){ toast('Prénom vide'); renderSettings(); return; }
+  if(newName===oldName){ renderSettings(); return; }               // rien à faire (ou juste re-cap)
+  if(S.players.some(p=>p!==oldName && p.toLowerCase()===newName.toLowerCase())){
+    toast('Prénom déjà pris'); renderSettings(); return; }
+  const i = S.players.indexOf(oldName); if(i<0) return;
+  S.players[i] = newName;
+  S.deals.forEach(d=>{
+    d.participants = d.participants.map(p=>p===oldName?newName:p);
+    if(d.taker===oldName)   d.taker=newName;
+    if(d.partner===oldName) d.partner=newName;
+    if(d.miseres && d.miseres[oldName]){ d.miseres[newName]=d.miseres[oldName]; delete d.miseres[oldName]; }
+  });
+  save(); render(); renderSettings();
+  toast('Renommé ✔');
+}
+function newGame(){
+  if(!confirm('Démarrer une nouvelle partie ? (pense à exporter avant si tu veux garder celle-ci)')) return;
+  S={gameName:'', players:[], deals:[]}; save(); closeSettings(); render();
+}
+function resetAll(){
+  if(!confirm('Tout effacer définitivement ?')) return;
+  localStorage.removeItem(LS_KEY); S=load(); closeSettings(); render();
+}
+function exportJSON(){
+  const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`tarotsheet-${(S.gameName||'partie').replace(/\W+/g,'-')}.json`; a.click();
+  toast('Exporté ✔');
+}
+function importJSON(ev){
+  const f=ev.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ try{ const o=JSON.parse(rd.result);
+      if(!o.players||!Array.isArray(o.deals)) throw 0;
+      S=o; save(); closeSettings(); render(); toast('Importé ✔');
+    }catch(e){ toast('Fichier invalide'); } };
+  rd.readAsText(f);
+}
+
+/* ============================================================
+   UTILS
+   ============================================================ */
+function esc(s){ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+/* Capitalise : 1re lettre de chaque mot en majuscule, reste en minuscule (gère - et ') */
+function cap(s){ return String(s??'').trim().toLowerCase()
+  .replace(/(^|[ \-'])(\p{L})/gu, (m,sep,ch)=>sep+ch.toUpperCase()); }
+function jsq(s){ return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+function fmt(v){ return Number.isInteger(v)? v : (Math.round(v*10)/10); }
+let toastT;
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),1600); }
+
+/* events */
+document.getElementById('fab').onclick=()=>openDeal(null);
+document.getElementById('btnSettings').onclick=openSettings;
+document.getElementById('btnStats').onclick=()=>{ window.scrollTo({top:0,behavior:'smooth'}); };
+document.getElementById('dealOverlay').onclick=e=>{ if(e.target.id==='dealOverlay') closeDeal(); };
+document.getElementById('setOverlay').onclick=e=>{ if(e.target.id==='setOverlay') closeSettings(); };
+window.addEventListener('resize', ()=>drawGraph());
+
+Sync.init();
+render();
+</script>
+</body>
+</html>
