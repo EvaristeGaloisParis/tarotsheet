@@ -72,6 +72,11 @@ C'est un site **statique** (un seul fichier) — hébergeable gratuitement parto
 > La synchronisation Firebase nécessite une vraie URL `https://` (elle ne fonctionne pas en
 > ouvrant le fichier en local).
 
+## 📒 Historique des décisions
+
+Le but du projet, les décisions fonctionnelles, les choix techniques, les services externes
+(Firebase, Render, GitHub…) et les pistes écartées sont retracés dans **[DECISIONS.md](DECISIONS.md)**.
+
 ## 🛠️ Technique
 
 - HTML / CSS / JavaScript purs, **un seul fichier**, aucune étape de build.
