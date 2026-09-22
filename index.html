@@ -727,6 +727,7 @@ function renderDeal(){
     </div></div>`;
 
   /* poignée */
+  const pc = POIGNEE_COUNTS[n];
   h += `<div class="field"><label>Poignée</label>
     <div class="chips">
       <button class="chip ${form.poignee==='none'?'sel':''}" onclick="setField('poignee','none')">Aucune</button>
@@ -734,13 +735,7 @@ function renderDeal(){
       <button class="chip ${form.poignee==='double'?'sel':''}" onclick="setField('poignee','double')">Double <span class="mult">+30</span></button>
       <button class="chip ${form.poignee==='triple'?'sel':''}" onclick="setField('poignee','triple')">Triple <span class="mult">+40</span></button>
     </div>
-    <table class="poignee-table">
-      <thead><tr><th>Atouts à montrer</th><th>Simple</th><th>Double</th><th>Triple</th></tr></thead>
-      <tbody>${[3,4,5].map(j=>`<tr class="${j===n?'cur':''}">
-        <td>${j} joueurs</td><td>${POIGNEE_COUNTS[j].simple}</td><td>${POIGNEE_COUNTS[j].double}</td><td>${POIGNEE_COUNTS[j].triple}</td>
-      </tr>`).join('')}</tbody>
-    </table>
-    <div class="hint">Nombre d'atouts requis selon le nombre de joueurs (ta partie : à ${n}). La prime va toujours à l'équipe gagnante.</div></div>`;
+    <div class="hint">${pc?`À ${n} j : simple ${pc.simple} · double ${pc.double} · triple ${pc.triple} atouts. `:''}La prime va toujours à l'équipe gagnante.</div></div>`;
 
   /* misères (repliable — la plupart des donnes n'en ont pas) */
   const misSum = summarizeMiseres(form.miseres);
