@@ -45,6 +45,9 @@
     padding:14px; margin-bottom:14px}
   .card h2{font-size:13px; text-transform:uppercase; letter-spacing:.7px; color:var(--dim);
     margin-bottom:12px; font-weight:600; display:flex; align-items:center; gap:8px}
+  .card h2.collapse-h{justify-content:space-between; cursor:pointer; margin-bottom:0}
+  .card h2.collapse-h + *{margin-top:12px}
+  .card h2.collapse-h .chev{color:var(--dim2); font-size:15px}
   .muted{color:var(--dim)}
   .tiny{font-size:12px}
 
@@ -305,6 +308,15 @@ function genRoomCode(){
 }
 function isViewer(){ return Sync.role==='viewer' || Sync.role==='viewer-unconfigured'; }
 
+/* état de repli des cartes (persistant) */
+let COLLAPSE = (()=>{ try{ return Object.assign({graph:false, stats:false},
+  JSON.parse(localStorage.getItem('tarotsheet.ui')||'{}')); }catch(e){ return {graph:false, stats:false}; } })();
+function toggleCollapse(k){
+  COLLAPSE[k] = !COLLAPSE[k];
+  localStorage.setItem('tarotsheet.ui', JSON.stringify(COLLAPSE));
+  render();
+}
+
 /* --- règles de score --- */
 const TARGET   = {0:56, 1:51, 2:41, 3:36};              // points à faire selon nb de bouts
 const MULT     = {petite:1, garde:2, gardeSans:4, gardeContre:6};
@@ -485,15 +497,7 @@ function render(){
     <span class="ps-vals">Simple <b>${pcCur.simple}</b> · Double <b>${pcCur.double}</b> · Triple <b>${pcCur.triple}</b> atouts</span>
   </div>`;
 
-  /* graph */
-  html += `<div class="card">
-    <h2>📈 Évolution</h2>
-    <div id="graphWrap"><canvas id="graph" height="180"></canvas></div>
-    <div class="legend">${S.players.map(p=>
-      `<span><i style="background:${colorOf(p)}"></i>${esc(p)}</span>`).join('')}</div>
-  </div>`;
-
-  /* scoreboard */
+  /* scoreboard (juste sous le rappel poignée) */
   html += `<div class="card"><h2>🏆 Scores</h2><div class="scoreboard">`;
   ranked.forEach(p=>{
     const v=t[p]; const cls=v>0?'pos':v<0?'neg':'zero';
@@ -503,9 +507,17 @@ function render(){
   });
   html += `</div></div>`;
 
-  /* stats détaillées */
+  /* graph (repliable) */
+  html += `<div class="card">
+    <h2 class="collapse-h" onclick="toggleCollapse('graph')"><span>📈 Évolution</span><span class="chev">${COLLAPSE.graph?'▸':'▾'}</span></h2>
+    ${COLLAPSE.graph?'':`<div id="graphWrap"><canvas id="graph" height="180"></canvas></div>
+    <div class="legend">${S.players.map(p=>
+      `<span><i style="background:${colorOf(p)}"></i>${esc(p)}</span>`).join('')}</div>`}
+  </div>`;
+
+  /* stats détaillées (repliable) */
   const st = stats();
-  html += `<div class="card"><h2>📊 Statistiques</h2>
+  html += `<div class="card"><h2 class="collapse-h" onclick="toggleCollapse('stats')"><span>📊 Statistiques</span><span class="chev">${COLLAPSE.stats?'▸':'▾'}</span></h2>${COLLAPSE.stats?'':`
     <div style="overflow-x:auto"><table>
       <thead><tr>
         <th>Joueur</th><th>Prises</th><th>Réussites</th><th>Taux</th>
@@ -528,7 +540,7 @@ function render(){
         </tr>`;
       }).join('')}
       </tbody></table></div>
-    <div class="muted tiny" style="margin-top:8px">« Meilleure/Pire » = plus gros gain / plus grosse perte sur une donne.</div>
+    <div class="muted tiny" style="margin-top:8px">« Meilleure/Pire » = plus gros gain / plus grosse perte sur une donne.</div>`}
   </div>`;
 
   /* deals */
