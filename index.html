@@ -127,6 +127,12 @@
   .chip.off{opacity:.4}
   .chip .pc{width:10px; height:10px; border-radius:50%; display:inline-block}
 
+  .poignee-table{width:100%; border-collapse:collapse; margin-top:12px; font-size:12px}
+  .poignee-table th,.poignee-table td{border:1px solid var(--line); padding:6px 4px; text-align:center; color:var(--dim)}
+  .poignee-table th{color:var(--dim2); font-weight:600; text-transform:none; letter-spacing:0}
+  .poignee-table th:first-child,.poignee-table td:first-child{text-align:left; padding-left:8px}
+  .poignee-table tr.cur td{background:rgba(110,168,254,.16); color:var(--txt); font-weight:800}
+
   .mini-toggle{font-size:12px; font-weight:700; color:var(--accent); background:none;
     padding:4px 6px; text-transform:none; letter-spacing:0}
   .mis-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:8px}
@@ -697,15 +703,20 @@ function renderDeal(){
     </div></div>`;
 
   /* poignée */
-  const pc = POIGNEE_COUNTS[ (n>=3&&n<=5)? n : 4 ];
   h += `<div class="field"><label>Poignée</label>
     <div class="chips">
       <button class="chip ${form.poignee==='none'?'sel':''}" onclick="setField('poignee','none')">Aucune</button>
-      <button class="chip ${form.poignee==='simple'?'sel':''}" onclick="setField('poignee','simple')">Simple <span class="mult">${pc.simple} at. · +20</span></button>
-      <button class="chip ${form.poignee==='double'?'sel':''}" onclick="setField('poignee','double')">Double <span class="mult">${pc.double} at. · +30</span></button>
-      <button class="chip ${form.poignee==='triple'?'sel':''}" onclick="setField('poignee','triple')">Triple <span class="mult">${pc.triple} at. · +40</span></button>
+      <button class="chip ${form.poignee==='simple'?'sel':''}" onclick="setField('poignee','simple')">Simple <span class="mult">+20</span></button>
+      <button class="chip ${form.poignee==='double'?'sel':''}" onclick="setField('poignee','double')">Double <span class="mult">+30</span></button>
+      <button class="chip ${form.poignee==='triple'?'sel':''}" onclick="setField('poignee','triple')">Triple <span class="mult">+40</span></button>
     </div>
-    <div class="hint">Rappel du nombre d'atouts à ${(n>=3&&n<=5)?n:'?'} joueurs. La prime va toujours à l'équipe gagnante.</div></div>`;
+    <table class="poignee-table">
+      <thead><tr><th>Atouts à montrer</th><th>Simple</th><th>Double</th><th>Triple</th></tr></thead>
+      <tbody>${[3,4,5].map(j=>`<tr class="${j===n?'cur':''}">
+        <td>${j} joueurs</td><td>${POIGNEE_COUNTS[j].simple}</td><td>${POIGNEE_COUNTS[j].double}</td><td>${POIGNEE_COUNTS[j].triple}</td>
+      </tr>`).join('')}</tbody>
+    </table>
+    <div class="hint">Nombre d'atouts requis selon le nombre de joueurs (ta partie : à ${n}). La prime va toujours à l'équipe gagnante.</div></div>`;
 
   /* misères (repliable — la plupart des donnes n'en ont pas) */
   const misSum = summarizeMiseres(form.miseres);
