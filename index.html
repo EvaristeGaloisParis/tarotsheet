@@ -127,6 +127,11 @@
   .chip.off{opacity:.4}
   .chip .pc{width:10px; height:10px; border-radius:50%; display:inline-block}
 
+  .poignee-strip{display:flex; align-items:center; justify-content:space-between; gap:8px 14px; flex-wrap:wrap; padding:10px 14px}
+  .poignee-strip .ps-title{font-size:12px; color:var(--dim); font-weight:700; text-transform:uppercase; letter-spacing:.5px}
+  .poignee-strip .ps-vals{font-size:13px; color:var(--dim)}
+  .poignee-strip .ps-vals b{color:var(--txt); font-weight:800}
+
   .poignee-table{width:100%; border-collapse:collapse; margin-top:12px; font-size:12px}
   .poignee-table th,.poignee-table td{border:1px solid var(--line); padding:6px 4px; text-align:center; color:var(--dim)}
   .poignee-table th{color:var(--dim2); font-weight:600; text-transform:none; letter-spacing:0}
@@ -472,6 +477,13 @@ function render(){
   const ranked = [...S.players].sort((a,b)=>t[b]-t[a]);
 
   let html = viewer ? viewerBanner() : '';
+
+  /* rappel poignée pour le nombre de joueurs de la partie */
+  const pcCur = POIGNEE_COUNTS[S.players.length];
+  if(pcCur) html += `<div class="card poignee-strip">
+    <span class="ps-title">🖐 Poignée · à ${S.players.length} j</span>
+    <span class="ps-vals">Simple <b>${pcCur.simple}</b> · Double <b>${pcCur.double}</b> · Triple <b>${pcCur.triple}</b> atouts</span>
+  </div>`;
 
   /* graph */
   html += `<div class="card">
