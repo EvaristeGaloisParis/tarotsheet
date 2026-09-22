@@ -2,6 +2,8 @@
 
 Feuille de score simple pour le **tarot français** (3 à 5 joueurs).
 
+> **👉 Application en ligne : https://tarotsheet.onrender.com**
+
 Application web légère, **sans dépendance** (un seul fichier `index.html`), qui fonctionne
 **hors-ligne** et sauvegarde automatiquement sur l'appareil. Pensée pour tenir les scores
 rapidement pendant une longue soirée, et permettre aux autres joueurs de **suivre la grille
